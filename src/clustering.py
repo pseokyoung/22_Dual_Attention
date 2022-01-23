@@ -59,7 +59,7 @@ class KmeanCluster():
     
     def plot(self, plot_var, 
                    fig_size=6, fig_ratio=(1,1), s=10, alpha=0.8,
-                   subplot=None, fig_name=None, dpi=500):
+                   subplot=None, fig_name=None, dpi=500, save_fig=True):
         if self.num_cluster == 0:
             print("Build a cluster model first")
             
@@ -73,7 +73,7 @@ class KmeanCluster():
                                 color=color, s=s, alpha=alpha)
                 plt.title(var_name)
                 
-                if fig_name:
+                if fig_name and save_fig:
                     createfolder("./graph/clustering")
                     plt.savefig(f"./graph/clustering/{fig_name}_{dpi}dpi", dpi=dpi)
         
@@ -89,6 +89,7 @@ class KmeanCluster():
                                 color=color, s=s, alpha=alpha)
                 plt.title(var_name)
             plt.tight_layout()
+            plt.show()
             if fig_name:
                 createfolder("./graph/clustering")
                 plt.savefig(f"./graph/clustering/{fig_name}_{dpi}dpi", dpi=dpi)

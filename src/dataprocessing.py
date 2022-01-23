@@ -29,6 +29,7 @@ def data2series(data, history_length, history_var, future_length, future_var,
 
 def ctsfilter(df, min_length = 50):
     cts_ranges = []
+    total_sum = 0
 
     for i in range(len(df)):
         if not i:
@@ -41,10 +42,12 @@ def ctsfilter(df, min_length = 50):
             end_idx = df.index[i-1]
             if end_idx - start_idx > min_length:
                 cts_ranges.append(range(start_idx, end_idx))
+                total_sum += end_idx - start_idx + 1
             start_idx = df.index[i]
             temp_idx = start_idx
             temp_idx += 1
-    print(f"total number of continuous range: {len(cts_ranges)}")
+    print(f"the number of continuous range [min {min_length}]: {len(cts_ranges)}")
+    print(f"total number of data samples: {total_sum}")
     
     cts_df_list = []
     for cts_range in cts_ranges:
