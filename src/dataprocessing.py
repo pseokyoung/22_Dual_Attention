@@ -53,3 +53,20 @@ def ctsfilter(df, min_length = 50):
     for cts_range in cts_ranges:
         cts_df_list.append(df.loc[cts_range])
     return cts_df_list
+
+def EMA(df, alpha, target_var=False):
+
+    if target_var:
+        target_df = df[target_var].copy()
+    else:
+        target_df = df.copy()
+
+    for index in range(1, len(target_df)):
+        target_df.iloc[index] = alpha*target_df.iloc[index-1] + (1-alpha)*target_df.iloc[index]
+
+    if target_var:
+        df[target_var] = target_df
+    else:
+        df = target_df
+
+    return df
