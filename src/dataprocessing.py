@@ -55,6 +55,7 @@ def ctsfilter(df, min_length = 50):
     return cts_df_list
 
 def EMA(df, alpha, target_var=False):
+    df = df.copy()
 
     if target_var:
         target_df = df[target_var].copy()
