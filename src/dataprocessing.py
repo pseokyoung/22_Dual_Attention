@@ -71,3 +71,49 @@ def EMA(df, alpha, target_var=False):
         df = target_df
 
     return df
+
+def ListTrainTestSplitSemiRandom(data_list, test_ratio=0.2, seed=42):
+    data_copy = data_list.copy()
+
+    test_list=[]
+    test_index = []
+    min_max_list = []
+    for i, var in enumerate(data_list[0].columns):
+        for j, data in enumerate(data_list):
+            min = data[var].min()
+            max = data[var].max()
+
+            if not j:
+                global_min = min
+                global_max = max
+
+                index_min = j
+                index_max = j
+
+            elif global_min > min:
+                global_min = min
+                index_min = j
+
+            elif global_max < max:
+                global_max = max
+                index_max = j
+
+        min_max_list = min_max_list + [index_min, index_max]
+
+    except_list = list(set(min_max_list))        
+     
+    while(len(test_index) <= int(len(data_copy)*test_ratio)):
+        random.seed(seed)
+        num = random.randint(0, len(data_copy)-1)
+        if (num not in test_index) and (num not in except_list):
+            test_index.append(num)
+        seed += 1
+    test_index = sorted(test_index, reverse=True)
+    
+    print(f"Train {len(data_copy)-len(test_index)} Test {len(test_index)}")
+    print(f"Test Index: {test_index}")
+
+    for num_pop in test_index:
+        test_list.append(data_copy.pop(num_pop))
+
+    return data_copy, test_list
