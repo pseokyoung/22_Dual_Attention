@@ -120,139 +120,193 @@ class RNN():
         future_len  = self.future_train.shape[1]
         future_num  = self.future_train.shape[2]        
         
-        encoder_input = Input(shape=(history_len, history_num))
-
-        if model_type == 'seq2seq_lstm': # sequence-to-sequence LSTM
-            # 인코더 층
-            if num_layers == 1:
-                encoder = LSTM(num_neurons, return_state=True, name='encoder')
-                encoder_output, state_h, state_c = encoder(encoder_input)
-                encoder_states = [state_h, state_c]
-            else:
-                for layer in range(num_layers):
-                    if not layer: # 첫번째 인코더 층
-                        encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
-                    elif layer == num_layers-1: # 마지막 인코더 층
-                        encoder_output, state_h, state_c  = LSTM(num_neurons, return_sequences=False, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
-                        encoder_states = [state_h, state_c]
-                    else: # 중간 인코더 층
-                        encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
-            decoder_input = RepeatVector(future_len)(encoder_output)
-            # 디코더 층
-            if num_layers == 1:
-                decoder = LSTM(num_neurons, return_sequences=True, name='decoder')
-                decoder_output = decoder(decoder_input, initial_state=encoder_states)
-            else:
-                for layer in range(num_layers):
-                    if not layer: # 첫번째 디코더 층
-                        decoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=encoder_states)
-                    else: # 디코더 층
-                        decoder_output  = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
-            decoder_dense = Dense(future_num)
-            decoder_output = decoder_dense(decoder_output)
+        if model_type == 'seq2seq_lstm':
+            self.model = seq2seqLSTM(history_len, history_num, future_len, future_num, num_layers, num_neurons)
         
-        elif model_type == 'seq2seq_gru': # sequence-to-sequence GRU
-            # 인코더 층
-            if num_layers == 1:
-                encoder = GRU(num_neurons, return_state=True, name='encoder')
-                encoder_output, state_h = encoder(encoder_input)
-            else:
-                for layer in range(num_layers):
-                    if not layer: # 첫번째 인코더 층
-                        encoder_output = GRU(num_neurons,  return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
-                    elif layer == num_layers-1: # 마지막 인코더 층
-                        encoder_output, state_h  = GRU(num_neurons, return_sequences=False, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
-                    else: # 중간 인코더 층
-                        encoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
-            decoder_input = RepeatVector(future_len)(encoder_output)
-            # 디코더 층
-            if num_layers == 1:
-                decoder = GRU(num_neurons, return_sequences=True, name='decoder')
-                decoder_output = decoder(decoder_input, initial_state=state_h)
-            else:
-                for layer in range(num_layers):
-                    if not layer: # 첫번째 디코더 층
-                        decoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=state_h)
-                    else: # 디코더 층
-                        decoder_output  = GRU(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
-            # 디코더 덴스 층
-            decoder_dense = Dense(future_num)
-            decoder_output = decoder_dense(decoder_output)
+        
+        
+encoder_input = Input(shape=(history_len, history_num))
 
-        elif model_type == 'attn_seq2seq_lstm': # attention-based sequence-to-sequence LSTM
-            # 인코더 층
-            if num_layers == 1:
-                encoder = LSTM(num_neurons, return_sequences=True, return_state=True, name='encoder')
-                encoder_output, state_h, state_c = encoder(encoder_input)
+
+self.model = Model(encoder_input, decoder_output)
+
+optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
+self.model.compile(loss='mse',
+                    optimizer = optimizer)
+        
+
+def seq2seqLSTM(history_len, history_num, future_len, future_num,
+                num_layers=10, num_neurons=50): # sequence-to-sequence LSTM
+
+    encoder_input = Input(shape=(history_len, history_num))
+    
+    # 인코더 층
+    if num_layers == 1:
+        encoder = LSTM(num_neurons, return_state=True, name='encoder')
+        encoder_output, state_h, state_c = encoder(encoder_input)
+        encoder_states = [state_h, state_c]
+    else:
+        for layer in range(num_layers):
+            if not layer: # 첫번째 인코더 층
+                encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
+            elif layer == num_layers-1: # 마지막 인코더 층
+                encoder_output, state_h, state_c  = LSTM(num_neurons, return_sequences=False, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
                 encoder_states = [state_h, state_c]
-            else:
-                for layer in range(num_layers):
-                    if not layer: # 첫번째 인코더 층
-                        encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
-                    elif layer == num_layers-1: # 마지막 인코더 층
-                        encoder_output, state_h, state_c  = LSTM(num_neurons, return_sequences=True, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
-                        encoder_states = [state_h, state_c]
-                    else: # 중간 인코더 층
-                        encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
-            decoder_input = RepeatVector(future_len)(state_h)
-            # 디코더 층
-            if num_layers == 1:
-                decoder = LSTM(num_neurons, return_sequences=True, name='decoder')
-                decoder_output = decoder(decoder_input, initial_state=encoder_states)
-            else:
-                for layer in range(num_layers):
-                    if not layer: # 첫번째 디코더 층
-                        decoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=encoder_states)
-                    else: # 디코더 층
-                        decoder_output  = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
-            
-            # 어텐션 층 
-            attention = dot([decoder_output, encoder_output], axes=[2,2])
-            attention = Activation('softmax', name = 'alignment_score')(attention)
-            context = dot([attention, encoder_output],axes=[2,1])
-            decoder_conbined_context = concatenate([context, decoder_output])            
-            
-            # 디코더 덴스 층
-            decoder_dense = Dense(future_num)
-            decoder_output = decoder_dense(decoder_conbined_context)
+            else: # 중간 인코더 층
+                encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
+                
+    decoder_input = RepeatVector(future_len)(encoder_output)
+    
+    # 디코더 층
+    if num_layers == 1:
+        decoder = LSTM(num_neurons, return_sequences=True, name='decoder')
+        decoder_output = decoder(decoder_input, initial_state=encoder_states)
+    else:
+        for layer in range(num_layers):
+            if not layer: # 첫번째 디코더 층
+                decoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=encoder_states)
+            else: # 디코더 층
+                decoder_output  = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
 
-        elif model_type == 'attn_seq2seq_gru': # attention-based sequence-to-sequence GRU
-            # 인코더 층
-            if num_layers == 1:
-                encoder = GRU(num_neurons,  return_sequences=True, return_state=True, name='encoder')
-                encoder_output, state_h = encoder(encoder_input)
-            else:
-                for layer in range(num_layers):
-                    if not layer: # 첫번째 인코더 층
-                        encoder_output = GRU(num_neurons,  return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
-                    elif layer == num_layers-1: # 마지막 인코더 층
-                        encoder_output, state_h  = GRU(num_neurons, return_sequences=True, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
-                    else: # 중간 인코더 층
-                        encoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
-            decoder_input = RepeatVector(future_len)(state_h)
-            # 디코더 층
-            if num_layers == 1:
-                decoder = GRU(num_neurons, return_sequences=True, name='decoder')
-                decoder_output = decoder(decoder_input, initial_state=state_h)
-            else:
-                for layer in range(num_layers):
-                    if not layer: # 첫번째 디코더 층
-                        decoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=state_h)
-                    else: # 디코더 층
-                        decoder_output  = GRU(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
-            
-            # 어텐션 층 
-            attention = dot([decoder_output, encoder_output], axes=[2,2])
-            attention = Activation('softmax', name = 'alignment_score')(attention)
-            context = dot([attention, encoder_output],axes=[2,1])
-            decoder_conbined_context = concatenate([context, decoder_output])            
-            
-            # 디코더 덴스 층
-            decoder_dense = Dense(future_num)
-            decoder_output = decoder_dense(decoder_conbined_context)
-            
-        self.model = Model(encoder_input, decoder_output)
+    # 덴스 층                       
+    decoder_dense = Dense(future_num)
+    decoder_output = decoder_dense(decoder_output)
+    
+    # 모델 구성
+    model = Model(encoder_input, decoder_output)
+    optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
+    model.compile(loss='mse', optimizer = optimizer)
+    return model
 
-        optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
-        self.model.compile(loss='mse',
-                            optimizer = optimizer)
+def seq2seqGRU(history_len, history_num, future_len, future_num,
+                num_layers=10, num_neurons=50): # sequence-to-sequence GRU
+    
+    encoder_input = Input(shape=(history_len, history_num))
+    
+    # 인코더 층
+    if num_layers == 1:
+        encoder = GRU(num_neurons, return_state=True, name='encoder')
+        encoder_output, state_h = encoder(encoder_input)
+    else:
+        for layer in range(num_layers):
+            if not layer: # 첫번째 인코더 층
+                encoder_output = GRU(num_neurons,  return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
+            elif layer == num_layers-1: # 마지막 인코더 층
+                encoder_output, state_h  = GRU(num_neurons, return_sequences=False, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
+            else: # 중간 인코더 층
+                encoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
+    decoder_input = RepeatVector(future_len)(encoder_output)
+    # 디코더 층
+    if num_layers == 1:
+        decoder = GRU(num_neurons, return_sequences=True, name='decoder')
+        decoder_output = decoder(decoder_input, initial_state=state_h)
+    else:
+        for layer in range(num_layers):
+            if not layer: # 첫번째 디코더 층
+                decoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=state_h)
+            else: # 디코더 층
+                decoder_output  = GRU(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
+                
+    # 덴스 층                    
+    decoder_dense = Dense(future_num)
+    decoder_output = decoder_dense(decoder_output)
+    
+    # 모델 구성
+    model = Model(encoder_input, decoder_output)
+    optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
+    model.compile(loss='mse', optimizer = optimizer)
+    return model
+
+def ATTseq2seqLSTM(history_len, history_num, future_len, future_num,
+                num_layers=10, num_neurons=50): # attention-based sequence-to-sequence LSTM
+    
+    encoder_input = Input(shape=(history_len, history_num))
+    
+    # 인코더 층
+    if num_layers == 1:
+        encoder = LSTM(num_neurons, return_sequences=True, return_state=True, name='encoder')
+        encoder_output, state_h, state_c = encoder(encoder_input)
+        encoder_states = [state_h, state_c]
+    else:
+        for layer in range(num_layers):
+            if not layer: # 첫번째 인코더 층
+                encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
+            elif layer == num_layers-1: # 마지막 인코더 층
+                encoder_output, state_h, state_c  = LSTM(num_neurons, return_sequences=True, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
+                encoder_states = [state_h, state_c]
+            else: # 중간 인코더 층
+                encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
+    decoder_input = RepeatVector(future_len)(state_h)
+    # 디코더 층
+    if num_layers == 1:
+        decoder = LSTM(num_neurons, return_sequences=True, name='decoder')
+        decoder_output = decoder(decoder_input, initial_state=encoder_states)
+    else:
+        for layer in range(num_layers):
+            if not layer: # 첫번째 디코더 층
+                decoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=encoder_states)
+            else: # 디코더 층
+                decoder_output  = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
+    
+    # 어텐션 층 
+    attention = dot([decoder_output, encoder_output], axes=[2,2])
+    attention = Activation('softmax', name = 'alignment_score')(attention)
+    context = dot([attention, encoder_output],axes=[2,1])
+    decoder_conbined_context = concatenate([context, decoder_output])            
+    
+    # 덴스 층
+    decoder_dense = Dense(future_num)
+    decoder_output = decoder_dense(decoder_conbined_context)
+        
+    # 모델 구성
+    model = Model(encoder_input, decoder_output)
+    optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
+    model.compile(loss='mse', optimizer = optimizer)
+    return model
+
+def ATTseq2seqGRU(history_len, history_num, future_len, future_num,
+                num_layers=10, num_neurons=50): # attention-based sequence-to-sequence GRU
+    
+    encoder_input = Input(shape=(history_len, history_num))
+    
+    # 인코더 층
+    if num_layers == 1:
+        encoder = GRU(num_neurons,  return_sequences=True, return_state=True, name='encoder')
+        encoder_output, state_h = encoder(encoder_input)
+    else:
+        for layer in range(num_layers):
+            if not layer: # 첫번째 인코더 층
+                encoder_output = GRU(num_neurons,  return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
+            elif layer == num_layers-1: # 마지막 인코더 층
+                encoder_output, state_h  = GRU(num_neurons, return_sequences=True, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
+            else: # 중간 인코더 층
+                encoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
+                
+    decoder_input = RepeatVector(future_len)(state_h)
+    
+    # 디코더 층
+    if num_layers == 1:
+        decoder = GRU(num_neurons, return_sequences=True, name='decoder')
+        decoder_output = decoder(decoder_input, initial_state=state_h)
+    else:
+        for layer in range(num_layers):
+            if not layer: # 첫번째 디코더 층
+                decoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=state_h)
+            else: # 디코더 층
+                decoder_output  = GRU(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
+    
+    # 어텐션 층 
+    attention = dot([decoder_output, encoder_output], axes=[2,2])
+    attention = Activation('softmax', name = 'alignment_score')(attention)
+    context = dot([attention, encoder_output],axes=[2,1])
+    decoder_conbined_context = concatenate([context, decoder_output])            
+    
+    # 덴스 층
+    decoder_dense = Dense(future_num)
+    decoder_output = decoder_dense(decoder_conbined_context)
+    
+    # 모델 구성
+    model = Model(encoder_input, decoder_output)
+    optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
+    model.compile(loss='mse', optimizer = optimizer)
+    return model
