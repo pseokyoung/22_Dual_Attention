@@ -1,23 +1,28 @@
 import numpy as np
 import math
+import time
+
 from sklearn.model_selection import train_test_split
-from tensorflow import keras
-from keras.models import Model
 from tensorflow.keras.layers import *
 from keras.callbacks import EarlyStopping
 
+from src import models
 
-def super_attention(delta, pred_size, att_type):
+
+def super_attention(delta, future_size, future_num, att_type):
     start_factor = 1 + delta
     end_factor = 1
-    num_points = pred_size    
+    num_points = future_size    
     
     if att_type == 'linear':
-        factor = np.linspace(start_factor, end_factor, num_points)[np.newaxis,:,np.newaxis]
+        factor = np.linspace(start_factor, end_factor, num_points)
+        factor = np.array([factor, factor, factor]).T
+        factor = factor[np.newaxis,:,:]
 
     elif att_type == 'exp': 
-        factor = np.array([(start_factor)**((num_points-k-1)/(num_points-1)) 
-                           for k in range(num_points)])[np.newaxis,:,np.newaxis]
+        factor = np.array([(start_factor)**((num_points-k-1)/(num_points-1)) for k in range(num_points)])
+        factor = np.array([factor, factor, factor]).T
+        factor = factor[np.newaxis,:,:]
 
     else:
         print("invalid delta")
@@ -113,200 +118,35 @@ class RNN():
                 
         return history_arr, future_arr
            
-    def build_model(self, num_layers, num_neurons, model_type, activation='relu'):
+    def build_model(self, num_layers, num_neurons, dense_layers, dense_neurons, model_type, factor=[], activation='relu'):
         # https://github.com/KerasKorea/KEKOxTutorial/blob/master/28_A_ten-minute_introduction_to_sequence-to-sequence_learning_in_Keras.md
-        history_len = self.history_train.shape[1]
+        history_size = self.history_train.shape[1]
         history_num = self.history_train.shape[2]
-        future_len  = self.future_train.shape[1]
+        future_size  = self.future_train.shape[1]
         future_num  = self.future_train.shape[2]        
         
         if model_type == 'seq2seq_lstm':
-            self.model = seq2seqLSTM(history_len, history_num, future_len, future_num, num_layers, num_neurons)
+            self.model = models.seq2seqLSTM(history_size, history_num, future_size, future_num, num_layers, num_neurons, dense_layers, dense_neurons)
+        elif model_type == 'seq2seq_gru':
+            self.model = models.seq2seqGRU(history_size, history_num, future_size, future_num, num_layers, num_neurons, dense_layers, dense_neurons)
+        elif model_type == 'att_seq2seq_lstm':
+            self.model = models.ATTseq2seqLSTM(history_size, history_num, future_size, future_num, num_layers, num_neurons, dense_layers, dense_neurons)
+        elif model_type == 'att_seq2seq_gru':
+            self.model = models.ATTseq2seqGRU(history_size, history_num, future_size, future_num, num_layers, num_neurons, dense_layers, dense_neurons)  
+        elif model_type == 'datt_seq2seq_lstm':
+            self.model = models.DATTseq2seqLSTM(history_size, history_num, future_size, future_num, factor, num_layers, num_neurons, dense_layers, dense_neurons)      
+        elif model_type == 'datt_seq2seq_gru':
+            self.model = models.DATTseq2seqGRU(history_size, history_num, future_size, future_num, factor, num_layers, num_neurons, dense_layers, dense_neurons)     
+            
+    def train(self, epochs=10000, verbose=2, batch_size=32, patience=10, monitor='val_loss'):
+        early_stopping_cb = EarlyStopping(patience=patience, restore_best_weights= True, monitor=monitor)
         
+        time_start = time.time()
+        self.history = self.model.fit(self.history_train_sc, self.future_train_sc, 
+                                      epochs=epochs, callbacks=[early_stopping_cb], verbose=verbose, batch_size=batch_size, 
+                                      validation_data=(self.history_valid_sc, self.future_valid_sc))
+        time_end = time.time()
+        self.train_time = time_start - time_end
         
-        
-encoder_input = Input(shape=(history_len, history_num))
-
-
-self.model = Model(encoder_input, decoder_output)
-
-optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
-self.model.compile(loss='mse',
-                    optimizer = optimizer)
-        
-
-def seq2seqLSTM(history_len, history_num, future_len, future_num,
-                num_layers=10, num_neurons=50): # sequence-to-sequence LSTM
-
-    encoder_input = Input(shape=(history_len, history_num))
-    
-    # 인코더 층
-    if num_layers == 1:
-        encoder = LSTM(num_neurons, return_state=True, name='encoder')
-        encoder_output, state_h, state_c = encoder(encoder_input)
-        encoder_states = [state_h, state_c]
-    else:
-        for layer in range(num_layers):
-            if not layer: # 첫번째 인코더 층
-                encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
-            elif layer == num_layers-1: # 마지막 인코더 층
-                encoder_output, state_h, state_c  = LSTM(num_neurons, return_sequences=False, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
-                encoder_states = [state_h, state_c]
-            else: # 중간 인코더 층
-                encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
-                
-    decoder_input = RepeatVector(future_len)(encoder_output)
-    
-    # 디코더 층
-    if num_layers == 1:
-        decoder = LSTM(num_neurons, return_sequences=True, name='decoder')
-        decoder_output = decoder(decoder_input, initial_state=encoder_states)
-    else:
-        for layer in range(num_layers):
-            if not layer: # 첫번째 디코더 층
-                decoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=encoder_states)
-            else: # 디코더 층
-                decoder_output  = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
-
-    # 덴스 층                       
-    decoder_dense = Dense(future_num)
-    decoder_output = decoder_dense(decoder_output)
-    
-    # 모델 구성
-    model = Model(encoder_input, decoder_output)
-    optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
-    model.compile(loss='mse', optimizer = optimizer)
-    return model
-
-def seq2seqGRU(history_len, history_num, future_len, future_num,
-                num_layers=10, num_neurons=50): # sequence-to-sequence GRU
-    
-    encoder_input = Input(shape=(history_len, history_num))
-    
-    # 인코더 층
-    if num_layers == 1:
-        encoder = GRU(num_neurons, return_state=True, name='encoder')
-        encoder_output, state_h = encoder(encoder_input)
-    else:
-        for layer in range(num_layers):
-            if not layer: # 첫번째 인코더 층
-                encoder_output = GRU(num_neurons,  return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
-            elif layer == num_layers-1: # 마지막 인코더 층
-                encoder_output, state_h  = GRU(num_neurons, return_sequences=False, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
-            else: # 중간 인코더 층
-                encoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
-    decoder_input = RepeatVector(future_len)(encoder_output)
-    # 디코더 층
-    if num_layers == 1:
-        decoder = GRU(num_neurons, return_sequences=True, name='decoder')
-        decoder_output = decoder(decoder_input, initial_state=state_h)
-    else:
-        for layer in range(num_layers):
-            if not layer: # 첫번째 디코더 층
-                decoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=state_h)
-            else: # 디코더 층
-                decoder_output  = GRU(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
-                
-    # 덴스 층                    
-    decoder_dense = Dense(future_num)
-    decoder_output = decoder_dense(decoder_output)
-    
-    # 모델 구성
-    model = Model(encoder_input, decoder_output)
-    optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
-    model.compile(loss='mse', optimizer = optimizer)
-    return model
-
-def ATTseq2seqLSTM(history_len, history_num, future_len, future_num,
-                num_layers=10, num_neurons=50): # attention-based sequence-to-sequence LSTM
-    
-    encoder_input = Input(shape=(history_len, history_num))
-    
-    # 인코더 층
-    if num_layers == 1:
-        encoder = LSTM(num_neurons, return_sequences=True, return_state=True, name='encoder')
-        encoder_output, state_h, state_c = encoder(encoder_input)
-        encoder_states = [state_h, state_c]
-    else:
-        for layer in range(num_layers):
-            if not layer: # 첫번째 인코더 층
-                encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
-            elif layer == num_layers-1: # 마지막 인코더 층
-                encoder_output, state_h, state_c  = LSTM(num_neurons, return_sequences=True, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
-                encoder_states = [state_h, state_c]
-            else: # 중간 인코더 층
-                encoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
-    decoder_input = RepeatVector(future_len)(state_h)
-    # 디코더 층
-    if num_layers == 1:
-        decoder = LSTM(num_neurons, return_sequences=True, name='decoder')
-        decoder_output = decoder(decoder_input, initial_state=encoder_states)
-    else:
-        for layer in range(num_layers):
-            if not layer: # 첫번째 디코더 층
-                decoder_output = LSTM(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=encoder_states)
-            else: # 디코더 층
-                decoder_output  = LSTM(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
-    
-    # 어텐션 층 
-    attention = dot([decoder_output, encoder_output], axes=[2,2])
-    attention = Activation('softmax', name = 'alignment_score')(attention)
-    context = dot([attention, encoder_output],axes=[2,1])
-    decoder_conbined_context = concatenate([context, decoder_output])            
-    
-    # 덴스 층
-    decoder_dense = Dense(future_num)
-    decoder_output = decoder_dense(decoder_conbined_context)
-        
-    # 모델 구성
-    model = Model(encoder_input, decoder_output)
-    optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
-    model.compile(loss='mse', optimizer = optimizer)
-    return model
-
-def ATTseq2seqGRU(history_len, history_num, future_len, future_num,
-                num_layers=10, num_neurons=50): # attention-based sequence-to-sequence GRU
-    
-    encoder_input = Input(shape=(history_len, history_num))
-    
-    # 인코더 층
-    if num_layers == 1:
-        encoder = GRU(num_neurons,  return_sequences=True, return_state=True, name='encoder')
-        encoder_output, state_h = encoder(encoder_input)
-    else:
-        for layer in range(num_layers):
-            if not layer: # 첫번째 인코더 층
-                encoder_output = GRU(num_neurons,  return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
-            elif layer == num_layers-1: # 마지막 인코더 층
-                encoder_output, state_h  = GRU(num_neurons, return_sequences=True, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
-            else: # 중간 인코더 층
-                encoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
-                
-    decoder_input = RepeatVector(future_len)(state_h)
-    
-    # 디코더 층
-    if num_layers == 1:
-        decoder = GRU(num_neurons, return_sequences=True, name='decoder')
-        decoder_output = decoder(decoder_input, initial_state=state_h)
-    else:
-        for layer in range(num_layers):
-            if not layer: # 첫번째 디코더 층
-                decoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=state_h)
-            else: # 디코더 층
-                decoder_output  = GRU(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
-    
-    # 어텐션 층 
-    attention = dot([decoder_output, encoder_output], axes=[2,2])
-    attention = Activation('softmax', name = 'alignment_score')(attention)
-    context = dot([attention, encoder_output],axes=[2,1])
-    decoder_conbined_context = concatenate([context, decoder_output])            
-    
-    # 덴스 층
-    decoder_dense = Dense(future_num)
-    decoder_output = decoder_dense(decoder_conbined_context)
-    
-    # 모델 구성
-    model = Model(encoder_input, decoder_output)
-    optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
-    model.compile(loss='mse', optimizer = optimizer)
-    return model
+    def save_model(self, save_path):
+        self.model.save(save_path)

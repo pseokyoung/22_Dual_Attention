@@ -3,7 +3,7 @@ import random
 import numpy as np
 import random
 
-def data2series(data, history_length, history_var, future_length, future_var,
+def data2series(data, history_size, history_var, future_size, future_var,
                 step=1, start_idx=0, end_idx=None):
     
     history_data = data[history_var].values
@@ -12,18 +12,18 @@ def data2series(data, history_length, history_var, future_length, future_var,
     history_series = []
     future_series = []
     
-    start_idx = start_idx + history_length
+    start_idx = start_idx + history_size
     if end_idx is None:
-        end_idx = len(data) - future_length
+        end_idx = len(data) - future_size
     else:
-        end_idx = end_idx - future_length
+        end_idx = end_idx - future_size
         
     for i in range(start_idx, end_idx):
-        history_series.append(history_data[range(i-history_length, i, step)])
-        if future_length == 1:
+        history_series.append(history_data[range(i-history_size, i, step)])
+        if future_size == 1:
             future_series.append(future_data[i])
         else:
-            future_series.append(future_data[i : i+future_length : step])
+            future_series.append(future_data[i : i+future_size : step])
     
     return np.array(history_series), np.array(future_series)
 
