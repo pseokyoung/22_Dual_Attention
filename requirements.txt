@@ -1,0 +1,25 @@
+# pip freeze > requirements.txt
+# pip install -r requirements.txt
+
+# Model Building Requirements
+numpy
+pandas
+scikit-learn
+gym
+tensorflow
+opencv-python
+
+joblib
+
+# plot
+matplotlib
+seaborn
+
+# testing requirements
+
+
+# packaging
+ipykernel
+
+
+

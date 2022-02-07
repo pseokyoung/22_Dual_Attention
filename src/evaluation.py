@@ -1,3 +1,5 @@
+import numpy as np
+
 def r_squared(prediction, actual):    
     actual_mean = np.mean(actual, axis=0)
     SSR = np.sum( (prediction - actual)**2 , axis=0)    

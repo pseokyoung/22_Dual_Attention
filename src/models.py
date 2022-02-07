@@ -37,11 +37,11 @@ def seq2seqLSTM(history_size, history_num, future_size, future_num,
 
     # 덴스 층
     if dense_layers == 1:
-        decoder_output = Dense(future_num)(decoder_conbined_context)
+        decoder_output = Dense(future_num)(decoder_output)
     else:
         for num in range(dense_layers):
             if not num:
-                decoder_output = Dense(dense_neurons)(decoder_conbined_context)
+                decoder_output = Dense(dense_neurons)(decoder_output)
             elif num == dense_layers-1:
                 decoder_output = Dense(future_num)(decoder_output)
             else:
@@ -84,11 +84,11 @@ def seq2seqGRU(history_size, history_num, future_size, future_num,
                 
     # 덴스 층
     if dense_layers == 1:
-        decoder_output = Dense(future_num)(decoder_conbined_context)
+        decoder_output = Dense(future_num)(decoder_output)
     else:
         for num in range(dense_layers):
             if not num:
-                decoder_output = Dense(dense_neurons)(decoder_conbined_context)
+                decoder_output = Dense(dense_neurons)(decoder_output)
             elif num == dense_layers-1:
                 decoder_output = Dense(future_num)(decoder_output)
             else:

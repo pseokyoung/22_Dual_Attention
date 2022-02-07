@@ -2,6 +2,8 @@ import os
 import shutil
 import pandas as pd
 import joblib
+from tensorflow import keras
+
 
  
 def checkgpu():
@@ -10,7 +12,7 @@ def checkgpu():
     print(device_lib.list_local_devices())
     
 def createfolder(path):
-    if not os.path.exists(path):
+    if not os.path.exists(path):#
         os.makedirs(path)
         
 def removefolder(path):
