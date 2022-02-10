@@ -223,6 +223,7 @@ class RNN():
         
         df_evaluation = pd.concat([df_r2, df_nrmse], axis=1)
         display(df_evaluation)
+        return df_evaluation
         
     def get_attention(self, history_series_sc):
         attention_model = Model(inputs=self.model.input,
