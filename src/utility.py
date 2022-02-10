@@ -3,8 +3,6 @@ import shutil
 import pandas as pd
 import joblib
 from tensorflow import keras
-
-
  
 def checkgpu():
     from tensorflow.python.client import device_lib
@@ -34,6 +32,7 @@ def loadfile(file_path, file_name, file_type='csv'):
     return file_load
 
 def savefile(file_save, file_path, file_name, file_type='csv', index=False):
+    createfolder(file_path)
     if file_type == 'csv':
         file_save.to_csv(f"{file_path}/{file_name}.csv", index = index)
         print(f"csv file is saved to: {file_path}/{file_name}.csv")

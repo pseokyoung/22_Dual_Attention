@@ -3,6 +3,7 @@ import pandas as pd
 import time
 
 from sklearn.model_selection import train_test_split
+from src.utility import createfolder
 from tensorflow.keras.layers import *
 from keras.models import Model
 from keras.callbacks import EarlyStopping
@@ -187,6 +188,7 @@ class RNN():
         self.train_time = time_start - time_end
         
     def save_model(self, save_path):
+        createfolder(save_path)
         self.model.save(save_path)
         
     def test(self):        

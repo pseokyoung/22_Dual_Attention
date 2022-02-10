@@ -1,4 +1,4 @@
-from .utility import *
+from src.utility import *
 
 from re import sub
 import matplotlib.pyplot as plt
