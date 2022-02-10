@@ -72,6 +72,7 @@ class KmeanCluster():
                     plt.scatter(plot_data.index, plot_data[var_name], 
                                 color=color, s=s, alpha=alpha)
                 plt.title(var_name)
+                plt.show()
                 
                 if fig_name and save_fig:
                     createfolder("./graph/clustering")

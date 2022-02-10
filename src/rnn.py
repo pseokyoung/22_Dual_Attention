@@ -203,12 +203,20 @@ class RNN():
             self.r2 = evaluation.r_squared(prediction, self.future_test)
             self.nrmse = evaluation.nrmse(prediction, self.future_test)
             
-        r2_index = pd.DataFrame(['R2']*len(self.future_var), index=self.future_var, columns=['index']).T  
+        r2_index = pd.DataFrame(['R2']*(len(self.future_var)+1), index=self.future_var+['mean'], columns=['index']).T 
         df_r2 = pd.DataFrame(self.r2, columns=self.future_var)
+        mean = pd.DataFrame([df_r2.mean(axis=0)], index=['mean'])
+        df_r2 = pd.concat([df_r2, mean], axis=0)
+        mean = pd.DataFrame(df_r2.mean(axis=1), columns=['mean'])
+        df_r2 = pd.concat([df_r2, mean], axis=1)
         df_r2 = pd.concat([r2_index, df_r2], axis=0)
         
-        nrmse_index = pd.DataFrame(['nRMSE']*len(self.future_var), index=self.future_var, columns=['index']).T 
+        nrmse_index = pd.DataFrame(['nRMSE']*(len(self.future_var)+1), index=self.future_var+['mean'], columns=['index']).T        
         df_nrmse = pd.DataFrame(self.nrmse, columns=self.future_var)
+        mean = pd.DataFrame([df_nrmse.mean(axis=0)], index=['mean'])
+        df_nrmse = pd.concat([df_nrmse, mean], axis=0)
+        mean = pd.DataFrame(df_nrmse.mean(axis=1), columns=['mean'])
+        df_nrmse = pd.concat([df_nrmse, mean], axis=1)
         df_nrmse = pd.concat([nrmse_index, df_nrmse], axis=0)
         
         df_evaluation = pd.concat([df_r2, df_nrmse], axis=1)
