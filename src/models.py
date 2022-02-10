@@ -324,4 +324,3 @@ def DATTseq2seqGRU(history_size, history_num, future_size, future_num,
     optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
     model.compile(loss='mse', optimizer = optimizer)
     return model
-
