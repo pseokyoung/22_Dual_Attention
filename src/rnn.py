@@ -148,28 +148,28 @@ class RNN():
             
         elif model_type == 'att_seq2seq_lstm':
             self.model_type = model_type
-            self.model, self.get_attention = models.ATTseq2seqLSTM(history_size, history_num, future_size, future_num, num_layers, num_neurons, dense_layers, dense_neurons)
+            self.model = models.ATTseq2seqLSTM(history_size, history_num, future_size, future_num, num_layers, num_neurons, dense_layers, dense_neurons)
             
         elif model_type == 'att_seq2seq_gru':
             self.model_type = model_type
-            self.model, self.get_attention = models.ATTseq2seqGRU(history_size, history_num, future_size, future_num, num_layers, num_neurons, dense_layers, dense_neurons)  
+            self.model = models.ATTseq2seqGRU(history_size, history_num, future_size, future_num, num_layers, num_neurons, dense_layers, dense_neurons)  
             
         elif model_type == 'datt_seq2seq_lstm':
             self.model_type = model_type
-            self.model, self.get_attention = models.DATTseq2seqLSTM(history_size, history_num, future_size, future_num, factor, num_layers, num_neurons, dense_layers, dense_neurons)
+            self.model = models.DATTseq2seqLSTM(history_size, history_num, future_size, future_num, factor, num_layers, num_neurons, dense_layers, dense_neurons)
             self.factor = factor
             self.future_train_wt = self.future_train_sc*factor
             self.future_test_wt = self.future_test_sc*factor
-            if len(self.history_valid):      
+            if len(self.history_valid):
                 self.future_valid_wt   = self.future_valid_sc*factor
                 
         elif model_type == 'datt_seq2seq_gru':
             self.model_type = model_type
-            self.model, self.get_attention = models.DATTseq2seqGRU(history_size, history_num, future_size, future_num, factor, num_layers, num_neurons, dense_layers, dense_neurons)  
+            self.model = models.DATTseq2seqGRU(history_size, history_num, future_size, future_num, factor, num_layers, num_neurons, dense_layers, dense_neurons)  
             self.factor = factor
             self.future_train_wt = self.future_train_sc*factor
             self.future_test_wt = self.future_test_sc*factor
-            if len(self.history_valid):      
+            if len(self.history_valid):
                 self.future_valid_wt   = self.future_valid_sc*factor
             
     def train(self, epochs=10000, verbose=2, batch_size=32, patience=10, monitor='val_loss'):
@@ -226,4 +226,6 @@ class RNN():
         return df_evaluation
         
     def get_attention(self, history_series_sc):
-        return self.get_attention.predict(history_series_sc)
+        attention_model = Model(inputs=self.model.input,
+                                outputs=self.model.get_layer('alignment_score').output)
+        return attention_model.predict(history_series_sc)
