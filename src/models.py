@@ -1,3 +1,4 @@
+from pickle import TRUE
 from tensorflow import keras
 from tensorflow.keras.layers import *
 from keras.models import Model
@@ -153,7 +154,9 @@ def ATTseq2seqLSTM(history_size, history_num, future_size, future_num,
     model = Model(encoder_input, decoder_output)
     optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
     model.compile(loss='mse', optimizer = optimizer)
-    return model
+    
+    get_attention = Model(encoder_input, attention)
+    return model, get_attention
 
 def ATTseq2seqGRU(history_size, history_num, future_size, future_num,
                   num_layers=10, num_neurons=50, dense_layers=1, dense_neurons=50): # attention-based sequence-to-sequence GRU
@@ -208,7 +211,9 @@ def ATTseq2seqGRU(history_size, history_num, future_size, future_num,
     model = Model(encoder_input, decoder_output)
     optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
     model.compile(loss='mse', optimizer = optimizer)
-    return model
+    
+    get_attention = Model(encoder_input, attention)
+    return model, get_attention
 
 def DATTseq2seqLSTM(history_size, history_num, future_size, future_num,
                     factor, num_layers=10, num_neurons=50, dense_layers=1, dense_neurons=50): # dual attention-based sequence-to-sequence LSTM
@@ -266,6 +271,9 @@ def DATTseq2seqLSTM(history_size, history_num, future_size, future_num,
     model = Model(encoder_input, decoder_output)
     optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
     model.compile(loss='mse', optimizer = optimizer)
+    
+    get_attention = Model(encoder_input, attention)
+    return model, get_attention
 
 def DATTseq2seqGRU(history_size, history_num, future_size, future_num,
                    factor, num_layers=10, num_neurons=50, dense_layers=1, dense_neurons=50): # dual attention-based sequence-to-sequence GRU
@@ -274,33 +282,33 @@ def DATTseq2seqGRU(history_size, history_num, future_size, future_num,
     
     # 인코더 층
     if num_layers == 1:
-        encoder = GRU(num_neurons,  return_sequences=True, return_state=True, name='encoder')
+        encoder = GRU(num_neurons,  return_sequences=True, return_state=TRUE)
         encoder_output, state_h = encoder(encoder_input)
     else:
         for layer in range(num_layers):
             if not layer: # 첫번째 인코더 층
-                encoder_output = GRU(num_neurons,  return_sequences=True, return_state=False, name="encoder_1")(encoder_input)
+                encoder_output = GRU(num_neurons,  return_sequences=True, return_state=False)(encoder_input)
             elif layer == num_layers-1: # 마지막 인코더 층
-                encoder_output, state_h  = GRU(num_neurons, return_sequences=True, return_state=True, name=f"encoder_{layer+1}")(encoder_output)
+                encoder_output, state_h  = GRU(num_neurons, return_sequences=True, return_state=True)(encoder_output)
             else: # 중간 인코더 층
-                encoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name=f"encoder_{layer+1}")(encoder_output)
+                encoder_output = GRU(num_neurons, return_sequences=True, return_state=False)(encoder_output)
                 
     decoder_input = RepeatVector(future_size)(state_h)
     
     # 디코더 층
     if num_layers == 1:
-        decoder = GRU(num_neurons, return_sequences=True, name='decoder')
+        decoder = GRU(num_neurons, return_sequences=True)
         decoder_output = decoder(decoder_input, initial_state=state_h)
     else:
         for layer in range(num_layers):
             if not layer: # 첫번째 디코더 층
-                decoder_output = GRU(num_neurons, return_sequences=True, return_state=False, name='decoder_1')(decoder_input, initial_state=state_h)
+                decoder_output = GRU(num_neurons, return_sequences=True, return_state=False)(decoder_input, initial_state=state_h)
             else: # 디코더 층
-                decoder_output  = GRU(num_neurons, return_sequences=True, return_state=False, name=f"decoder_{layer+1}")(decoder_output)
+                decoder_output  = GRU(num_neurons, return_sequences=True, return_state=False)(decoder_output)
     
     # 어텐션 층 
     attention = dot([decoder_output, encoder_output], axes=[2,2])
-    attention = Activation('softmax', name = 'alignment_score')(attention)
+    attention = Activation('softmax')(attention)
     context = dot([attention, encoder_output],axes=[2,1])
     decoder_conbined_context = concatenate([context, decoder_output])            
     
@@ -323,4 +331,6 @@ def DATTseq2seqGRU(history_size, history_num, future_size, future_num,
     model = Model(encoder_input, decoder_output)
     optimizer = keras.optimizers.Adam(learning_rate = 0.001, beta_1=0.9, beta_2=0.999)
     model.compile(loss='mse', optimizer = optimizer)
-    return model
+    
+    get_attention = Model(encoder_input, attention)
+    return model, get_attention
