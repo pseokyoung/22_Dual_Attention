@@ -187,9 +187,12 @@ class RNN():
         time_end = time.time()
         self.train_time = time_start - time_end
         
-    def save_model(self, save_path):
+    def save_model(self, save_path, save_type='saved_model'):
         createfolder(save_path)
-        self.model.save(save_path)
+        if save_type == 'saved_model':
+            self.model.save(save_path)
+        elif save_type == 'weights':
+            self.model.save_weights(f"{save_path}.h5")
         
     def test(self):        
         if self.model_type == 'datt_seq2seq_lstm' or self.model_type == 'datt_seq2seq_gru':      
