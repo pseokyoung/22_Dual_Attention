@@ -41,14 +41,6 @@ def savefile(file_save, file_path, file_name, file_type='csv', index=False):
         joblib.dump(file_save, f"{file_path}/{file_name}.pkl")
         print(f"pkl is saved to: {file_path}/{file_name}.pkl")    
 
-def exists(file_path, file_name, file_type='csv'):
-    if file_type == "csv":
-        istrue = os.path.exists(f"{file_path}/{file_name}.csv")
-
-    elif file_type == "pkl":
-        istrue = os.path.exists(f"{file_path}/{file_name}.pkl")
-
-    elif file_type == 'model':
-        istrue = os.path.exists(f"{file_path}/{file_name}")
-
+def exists(file_path):
+    istrue = os.path.exists(f"{file_path}")
     return istrue
