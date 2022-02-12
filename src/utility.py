@@ -30,7 +30,7 @@ def loadfile(file_path, file_name, file_type='csv'):
         print(f"model is loaded from: {file_path}/{file_name}")
 
     elif file_type == 'weights':
-        file_load = keras.models.load_model(f"{file_path}/{file_name}.h5")
+        file_load = keras.models.load_weights(f"{file_path}/{file_name}.h5")
         print(f"model is loaded from: {file_path}/{file_name}.h5")
                 
     return file_load
