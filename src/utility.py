@@ -16,18 +16,21 @@ def createfolder(path):
 def removefolder(path):
     shutil.rmtree(path, ignore_errors=True)
         
-def loadfile(file_path, file_name, file_type='csv'):
+def loadfile(file_path, file_name, file_type='csv', header=0, print_msg=True):
     if file_type == 'csv':
-        file_load = pd.read_csv(f"{file_path}/{file_name}.csv", header=0)
-        print(f"csv file is loaded from {file_path}/{file_name}.csv")
+        file_load = pd.read_csv(f"{file_path}/{file_name}.csv", header=header)
+        if print_msg:
+            print(f"csv file is loaded from {file_path}/{file_name}.csv")
         
     elif file_type == 'pkl':
         file_load = joblib.load(f"{file_path}/{file_name}.pkl")
-        print(f"pkl file is loaded from: {file_path}/{file_name}.pkl")
+        if print_msg:
+            print(f"pkl file is loaded from: {file_path}/{file_name}.pkl")
 
     elif file_type == 'model':
         file_load = keras.models.load_model(f"{file_path}/{file_name}")
-        print(f"model is loaded from: {file_path}/{file_name}")
+        if print_msg:
+            print(f"model is loaded from: {file_path}/{file_name}")
                 
     return file_load
 

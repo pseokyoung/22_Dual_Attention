@@ -194,7 +194,7 @@ class RNN():
         elif save_type == 'weights':
             self.model.save_weights(f"{save_path}.h5")
         
-    def test(self):        
+    def test(self, print_result=True):        
         if self.model_type == 'datt_seq2seq_lstm' or self.model_type == 'datt_seq2seq_gru':      
             prediction_wt = self.model.predict(self.history_test_sc)            # weighted prediction
             prediction_sc = prediction_wt/self.factor                           # scaled prediction
@@ -225,7 +225,8 @@ class RNN():
         df_nrmse = pd.concat([nrmse_index, df_nrmse], axis=0)
         
         df_evaluation = pd.concat([df_r2, df_nrmse], axis=1)
-        display(df_evaluation)
+        if print_result:
+            display(df_evaluation)
         return df_evaluation
         
     def get_attention(self, history_series_sc):
