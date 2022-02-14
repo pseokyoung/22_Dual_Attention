@@ -2,6 +2,7 @@ import os
 import shutil
 import pandas as pd
 import joblib
+import matplotlib.pyplot as plt
 from tensorflow import keras
  
 def checkgpu():
@@ -42,7 +43,10 @@ def savefile(file_save, file_path, file_name, file_type='csv', index=False):
 
     elif file_type == 'pkl':
         joblib.dump(file_save, f"{file_path}/{file_name}.pkl")
-        print(f"pkl is saved to: {file_path}/{file_name}.pkl")    
+        print(f"pkl is saved to: {file_path}/{file_name}.pkl")   
+         
+    elif file_type == 'figure':
+        plt.savefig(f"{file_path}/{file_name}.png")
 
 def exists(file_path):
     istrue = os.path.exists(f"{file_path}")
