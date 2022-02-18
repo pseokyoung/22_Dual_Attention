@@ -44,9 +44,9 @@ def seq2seqLSTM(history_size, history_num, future_size, future_num,
             if not num:
                 decoder_output = Dense(dense_neurons, name='dense_1')(decoder_output)
             elif num == dense_layers-1:
-                decoder_output = Dense(future_num, name=f'dense_{layer+1}')(decoder_output)
+                decoder_output = Dense(future_num, name=f'dense_{num+1}')(decoder_output)
             else:
-                decoder_output = Dense(dense_neurons, name=f'dense_{layer+1}')(decoder_output)      
+                decoder_output = Dense(dense_neurons, name=f'dense_{num+1}')(decoder_output)      
     
     # 모델 구성
     model = Model(encoder_input, decoder_output)
@@ -91,9 +91,9 @@ def seq2seqGRU(history_size, history_num, future_size, future_num,
             if not num:
                 decoder_output = Dense(dense_neurons, name='dense_1')(decoder_output)
             elif num == dense_layers-1:
-                decoder_output = Dense(future_num, name=f'dense_{layer+1}')(decoder_output)
+                decoder_output = Dense(future_num, name=f'dense_{num+1}')(decoder_output)
             else:
-                decoder_output = Dense(dense_neurons, name=f'dense_{layer+1}')(decoder_output)     
+                decoder_output = Dense(dense_neurons, name=f'dense_{num+1}')(decoder_output)     
     
     # 모델 구성
     model = Model(encoder_input, decoder_output)
@@ -146,9 +146,9 @@ def ATTseq2seqLSTM(history_size, history_num, future_size, future_num,
             if not num:
                 decoder_output = Dense(dense_neurons, name='dense_1')(decoder_conbined_context)
             elif num == dense_layers-1:
-                decoder_output = Dense(future_num, name=f'dense_{layer+1}')(decoder_output)
+                decoder_output = Dense(future_num, name=f'dense_{num+1}')(decoder_output)
             else:
-                decoder_output = Dense(dense_neurons, name=f'dense_{layer+1}')(decoder_output)      
+                decoder_output = Dense(dense_neurons, name=f'dense_{num+1}')(decoder_output)      
         
     # 모델 구성
     model = Model(encoder_input, decoder_output)
@@ -202,9 +202,9 @@ def ATTseq2seqGRU(history_size, history_num, future_size, future_num,
             if not num:
                 decoder_output = Dense(dense_neurons, name='dense_1')(decoder_conbined_context)
             elif num == dense_layers-1:
-                decoder_output = Dense(future_num, name=f'dense_{layer+1}')(decoder_output)
+                decoder_output = Dense(future_num, name=f'dense_{num+1}')(decoder_output)
             else:
-                decoder_output = Dense(dense_neurons, name=f'dense_{layer+1}')(decoder_output)        
+                decoder_output = Dense(dense_neurons, name=f'dense_{num+1}')(decoder_output)        
     
     # 모델 구성
     model = Model(encoder_input, decoder_output)
@@ -258,9 +258,9 @@ def DATTseq2seqLSTM(history_size, history_num, future_size, future_num,
             if not num:
                 decoder_output = Dense(dense_neurons, name='dense_1')(decoder_conbined_context)
             elif num == dense_layers-1:
-                decoder_output = Dense(future_num, name=f'dense_{layer+1}')(decoder_output)
+                decoder_output = Dense(future_num, name=f'dense_{num+1}')(decoder_output)
             else:
-                decoder_output = Dense(dense_neurons, name=f'dense_{layer+1}')(decoder_output)                    
+                decoder_output = Dense(dense_neurons, name=f'dense_{num+1}')(decoder_output)                    
     
     # 가중 어텐션 층
     decoder_output = Multiply(name='multiply')([decoder_output, factor])
@@ -317,9 +317,9 @@ def DATTseq2seqGRU(history_size, history_num, future_size, future_num,
             if not num:
                 decoder_output = Dense(dense_neurons, name='dense_1')(decoder_conbined_context)
             elif num == dense_layers-1:
-                decoder_output = Dense(future_num, name=f'dense_{layer+1}')(decoder_output)
+                decoder_output = Dense(future_num, name=f'dense_{num+1}')(decoder_output)
             else:
-                decoder_output = Dense(dense_neurons, name=f'dense_{layer+1}')(decoder_output)                    
+                decoder_output = Dense(dense_neurons, name=f'dense_{num+1}')(decoder_output)                    
     
     # 가중 어텐션 층
     decoder_output = Multiply(name='multiply')([decoder_output, factor])

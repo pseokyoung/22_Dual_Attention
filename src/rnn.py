@@ -188,7 +188,6 @@ class RNN():
         self.train_time = time_start - time_end
         
     def save_model(self, save_path, save_type='saved_model'):
-        createfolder(save_path)
         if save_type == 'saved_model':
             self.model.save(save_path)
         elif save_type == 'weights':
